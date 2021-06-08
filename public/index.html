@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- 
+    <script src="./static/bower_components/jquery/dist/jquery.min.js"></script>
+    <script src="./static/bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+    <script src="./static/bower_components/webrtc-adapter/release/adapter.js"></script>
+
+    <script src="./static/bower_components/kurento-utils/js/kurento-utils.js"></script>
+
+    <script src="./static/js/index.js"></script> -->
+
+</head>
+
+<body>
+    <input type="text" id="username" placeholder="enter your username" /><button id="connect" disabled>Connect</button>
+    <br />
+    <div id="remote_videos">
+        <div class="videos-inner"></div>
+    </div>
+
+
+    <div id="videoBig">
+        <video id="videos" autoplay width="640px" height="480px" poster="./static/img/webrtc.png"></video>
+    </div>
+    <div id="input-group">
+        <a id="call" href="#" class="btn btn-success" onclick="start(); return false;">
+            <span class="glyphicon glyphicon-play"></span> Start
+        </a>
+        <a id="terminate" href="#" class="btn btn-danger" onclick="stop(); return false;">
+            <span class="glyphicon glyphicon-stop"></span> Stop
+        </a>
+    </div>
+
+    <video width="400" controls id="video_test">
+        <source src="1.mp4" type="video/mp4">
+        Your browser does not support HTML video.
+    </video>
+
+
+    <script src="SimpleSFUClient.js"></script>
+    <script>
+        const connectBtn = document.querySelector('#connect');
+        const remoteContainer = document.querySelector('#remote_videos');
+        const simple = new SimpleSFUClient();
+
+        simple.on('onConnected', () => {
+            connectBtn.disabled = false;
+            connectBtn.addEventListener('click', () => simple.connect())
+        });
+    </script>
+
+
+</body>
+
+</html>
