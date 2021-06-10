@@ -1,11 +1,11 @@
 const webrtc = require("wrtc");
 
 process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
-let mcu = require('./test')
-let count = 0
+let mcu = require("./test");
+let count = 0;
 //
-const redis = require("redis");
-const client_redis = redis.createClient();
+// const redis = require("redis");
+// const client_redis = redis.createClient();
 
 //
 var WebSocketClient = require("websocket").client;
@@ -23,6 +23,7 @@ let Bridge = {
   consumers: new Map(),
   localStream: null,
   connection: null,
+  streams: new Map(),
 };
 uuidv4 = () => {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
@@ -37,7 +38,7 @@ handleAnswer = ({ sdp }) => {
   Bridge.localPeer.setRemoteDescription(desc).catch((e) => console.log(e));
 };
 handleConsumerIceCandidate = (e, id, consumerId) => {
-  console.log("---send consumer_ice");
+  //   console.log("---send consumer_ice");
   const { candidate } = e;
   if (candidate && candidate.candidate && candidate.candidate.length > 0) {
     const payload = {
@@ -78,16 +79,33 @@ createConsumeTransport = async (peer) => {
     console.log("-------------------------------: ", e.streams[0].id);
     //
     // client_redis.set("stream1", e.streams[0], redis.print);
-    if(count == 0) {
-        mcu.main(e.streams[0])
-        count =1
+    if (!Bridge.streams.get(e.streams[0].id)) {
+      Bridge.streams.set(e.streams[0].id, e.streams[0].id);
+      setTimeout(async () => {
+        while(true){
+          try {
+            console.log("------------------CALL MCU-------------------: ", e.streams?.[0]?.id);
+            let resultMcu = await mcu.main(e.streams[0]);
+            console.log("---------------RESULT SUCCESS MCU CALL----------------: ", resultMcu)
+            break;
+          } catch (error) {
+            console.log("error:", error)
+          }
+        }
+      }, Math.floor(Math.random(1000) * 1000));
     }
+
+    // if(count == 0) {
+    //     console.log("--------------push-----------------: ", e.streams[0].id);
+    //     mcu.main(e.streams[0])
+    //     count =1
+    // }
   };
 
   return consumerTransport;
 };
 consumeOnce = async (peer) => {
-  console.log("---send consume");
+  //   console.log("---send consume");
   const transport = await createConsumeTransport(peer);
   const payload = {
     type: "consume",
@@ -120,10 +138,7 @@ handleNewProducer = async ({ id, username }) => {
   if (id === Bridge.localUUID) {
     return;
   }
-  // console.log("---------------------handleNewProducer--this.localUUID------: ", this.localUUID)
-  // console.log("---------------------handleNewProducer--id------: ", id)
-  // console.log("---------------------handleNewProducer--this.username------: ", username)
-  clients.set(id, { id, username });
+  Bridge.clients.set(id, { id, username });
   await consumeOnce({ id, username });
 };
 removeUser = ({ id }) => {

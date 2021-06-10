@@ -48,7 +48,13 @@ function handleTrackEvent(e, peer, ws) {
       id: peer,
       username: peers.get(peer).username,
     };
-    wss.broadcast(JSON.stringify(payload));
+    // wss.broadcast(JSON.stringify(payload));
+    wss.clients.forEach(function each(client) {
+      console.log("===:", client.id)
+      if (client !== ws && client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify(payload));
+      }
+    });
   }
 }
 
@@ -104,6 +110,7 @@ wss.on("connection", function (ws) {
       case "connect":
         // console.log("---------message connect---------------");
         peers.set(body.uqid, { socket: ws });
+        // console.log("---------message connect---------------: ", peers);
         const peer = createPeer();
 
         peers.get(body.uqid).username = body.username;
@@ -210,7 +217,7 @@ wss.on("connection", function (ws) {
         try {
           let { id, sdp, consumerId } = body;
           const remoteUser = peers.get(id);
-          // console.log("---------message consume--remoteUser-------------:", remoteUser);
+          // console.log("---------message consume--remoteUser-------------:", remoteUser.socket.id);
           const newPeer = createPeer();
           consumers.set(consumerId, newPeer);
           const _desc = new webrtc.RTCSessionDescription(sdp);
@@ -300,6 +307,7 @@ wss.on("connection", function (ws) {
 wss.broadcast = function (data) {
   // console.log("---------wss.broadcast---------------");
   peers.forEach(function (peer) {
+    // console.log("---------wss.broadcast---------------: ", peer.socket.id);
     if (peer.socket.readyState === WebSocket.OPEN) {
       peer.socket.send(data);
     }

@@ -1,6 +1,7 @@
 let mcu = {};
 
-mcu.main = (media_stream) => {
+
+mcu.main = (media_stream) => new Promise((resolve, reject) => {
   // console.log(media_stream)
   const webrtc = require("wrtc");
   const { RTCVideoSink, RTCVideoSource } = require("wrtc").nonstandard;
@@ -27,44 +28,44 @@ mcu.main = (media_stream) => {
   //   });
   // });
 
-  const WebSocketServer = WebSocket.Server;
-  let temp;
-  let serverOptions = {
-    listenPort: 5002,
-    useHttps: true,
-    httpsCertFile: "/etc/nginx/ssl/server.crt",
-    httpsKeyFile: "/etc/nginx/ssl/server.key",
-  };
+  // const WebSocketServer = WebSocket.Server;
+  // let temp;
+  // let serverOptions = {
+  //   listenPort: 5002,
+  //   useHttps: true,
+  //   httpsCertFile: "/etc/nginx/ssl/server.crt",
+  //   httpsKeyFile: "/etc/nginx/ssl/server.key",
+  // };
 
-  let sslOptions = {};
-  if (serverOptions.useHttps) {
-    sslOptions.key = fs.readFileSync(serverOptions.httpsKeyFile).toString();
-    sslOptions.cert = fs.readFileSync(serverOptions.httpsCertFile).toString();
-  }
+  // let sslOptions = {};
+  // if (serverOptions.useHttps) {
+  //   sslOptions.key = fs.readFileSync(serverOptions.httpsKeyFile).toString();
+  //   sslOptions.cert = fs.readFileSync(serverOptions.httpsCertFile).toString();
+  // }
 
-  let webServer = null;
-  if (serverOptions.useHttps) {
-    webServer = https.createServer(sslOptions, app);
-    webServer.listen(serverOptions.listenPort);
-  } else {
-    webServer = http.createServer(app);
-    webServer.listen(serverOptions.listenPort);
-  }
-  let peers = new Map();
-  let consumers = new Map();
+  // let webServer = null;
+  // if (serverOptions.useHttps) {
+  //   webServer = https.createServer(sslOptions, app);
+  //   webServer.listen(serverOptions.listenPort);
+  // } else {
+  //   webServer = http.createServer(app);
+  //   webServer.listen(serverOptions.listenPort);
+  // }
+  // let peers = new Map();
+  // let consumers = new Map();
 
-  function handleTrackEvent(e, peer, ws) {
-    if (e.streams && e.streams[0]) {
-      peers.get(peer).stream = e.streams[0];
+  // function handleTrackEvent(e, peer, ws) {
+  //   if (e.streams && e.streams[0]) {
+  //     peers.get(peer).stream = e.streams[0];
 
-      const payload = {
-        type: "newProducer",
-        id: peer,
-        username: peers.get(peer).username,
-      };
-      wss.broadcast(JSON.stringify(payload));
-    }
-  }
+  //     const payload = {
+  //       type: "newProducer",
+  //       id: peer,
+  //       username: peers.get(peer).username,
+  //     };
+  //     wss.broadcast(JSON.stringify(payload));
+  //   }
+  // }
 
   // getMedia()
   function createPeer() {
@@ -79,7 +80,7 @@ mcu.main = (media_stream) => {
   }
 
   // Create a server for handling websocket calls
-  const wss = new WebSocketServer({ server: webServer });
+  // const wss = new WebSocketServer({ server: webServer });
   //
   process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
   var WebSocketClient = require("websocket").client;
@@ -93,11 +94,9 @@ mcu.main = (media_stream) => {
   //
   // uncomment this
   var candidate;
-
+  var newPeer = createPeer();
   client.on("connect", async function (connection) {
-    var newPeer = createPeer();
     // var localStream = await redis_promise("stream1");
-
     var localStream = media_stream;
     localStream
       .getTracks()
@@ -105,13 +104,14 @@ mcu.main = (media_stream) => {
 
     var offer = await newPeer.createOffer();
     newPeer.setLocalDescription(offer);
-    connection.send(
-      JSON.stringify({
-        id: "client",
-        sdpOffer: offer.sdp,
-      })
-    );
-
+    setTimeout(() => {
+      connection.send(
+        JSON.stringify({
+          id: "client",
+          sdpOffer: offer.sdp,
+        })
+      );
+    }, 2000);
     newPeer.onicecandidate = (e) => {
       candidate = e.candidate;
       // console.log(e.candidate);
@@ -122,33 +122,44 @@ mcu.main = (media_stream) => {
         })
       );
     };
-   
 
     //    newPeer.onicecandidate = (e) => console.log(e.candidate);
-
-    connection.on("message", function (data) {
+    const webSocketCallback = async (data) => {
       var val = JSON.parse(data.utf8Data);
       // console.log(val)
       if (val.id === "response" && val.response === "accepted") {
         var test = {
           type: "answer",
-          sdp: val.sdpAnswer
-        }
+          sdp: val.sdpAnswer,
+        };
         const desc = new webrtc.RTCSessionDescription(test);
         // console.log(desc)
         newPeer.setRemoteDescription(desc);
         newPeer.ontrack = (e) => {
-          console.log("---traccccccccccccccccc: ", e.streams[0].active)
+          // console.log("---traccccccccccccccccc: ", e)
         };
       }
       // console.log(val.id)
-      if(val.id === "iceCandidate"){
-        console.log(val.candidate)
-        var test = new webrtc.RTCIceCandidate(val.candidate)
-        console.log(test)
-        newPeer.addIceCandidate(test)
-      }
+      if (val.id === "iceCandidate") {
+        try {
+          // console.log(val.candidate)
+          var test = new webrtc.RTCIceCandidate(val.candidate);
+          // console.log(test)
+          // console.log("--ice:", test);
+          await newPeer.addIceCandidate(test);
+          // resolve("abc")
 
+        } catch (err) {
+          console.log("11111", err);
+          reject(err)
+        }
+      }
+      // if (val.id === "endCandidate") {
+      //   resolve("abc")
+      // }
+    };
+    connection.on("message", (data) => webSocketCallback(data))
+      // connection.on("message", async function (data) {
       // newPeer.onicecandidate = (e) => {
       //   candidate = e.candidate;
       //   // console.log(e.candidate);
@@ -159,16 +170,14 @@ mcu.main = (media_stream) => {
       //     })
       //   );
       // };
-     
-
       // console.log('-----------------------------')
       // console.log("-----------------------------",val.id)
       // if(val.id === 'iceCandidate'){
       //   console.log(val)
       //   newPeer.addIceCandidate(val.candidate)
       // }
-    });
+    // });
   });
-};
+});
 
 module.exports = mcu;
