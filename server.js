@@ -260,6 +260,7 @@ wss.on("connection", function (ws) {
           };
           // console.log("-ice:", temp)
           ws.send(JSON.stringify(_payload));
+          console.log("---------------------------: ", peers);
           // connection.send(
           //   JSON.stringify({
           //     id: "abc",

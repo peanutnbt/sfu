@@ -283,6 +283,7 @@ class SimpleSFUClient {
     console.log("---connect");
 
     this.localPeer = new RTCPeerConnection(this.configuration);
+
     this.localPeer.onicecandidate = (e) => this.handleIceCandidate(e);
     //peer.oniceconnectionstatechange = checkPeerConnection;
     this.localPeer.onnegotiationneeded = () => this.handleNegotiation();

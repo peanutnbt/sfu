@@ -1,13 +1,13 @@
 let mcu = {};
 
 
-// mcu.main = (media_stream) => new Promise((resolve, reject) => {
-mcu.main = (media_stream) => {
+mcu.main = (media_stream) => new Promise((resolve, reject) => {
+// mcu.main = (media_stream) => {
   // console.log(media_stream)
   const webrtc = require("wrtc");
   const express = require("express");
   const app = express();
-  const sfu = require('./bridge_sfu copy')
+  const sfu = require('./bridge_sfu_sub')
   app.use(express.static("public"));
   let count = 1
   // var redis = require('redis');
@@ -88,7 +88,7 @@ mcu.main = (media_stream) => {
           newPeer.setRemoteDescription(desc);
           newPeer.ontrack = (e) => {
             if(count == 1){
-              console.log("---traccccccccccccccccc: ", e.streams[0])
+              console.log("---traccccccccccccccccc: ", e.streams[0]?.id)
               sfu.main(e.streams[0])
               count = 0
             }
@@ -102,11 +102,11 @@ mcu.main = (media_stream) => {
             // console.log(test)
             // console.log("--ice:", test);
             await newPeer.addIceCandidate(test);
-            // resolve("abc")
+            resolve("abc")
 
           } catch (err) {
             console.log("11111", err);
-            // reject(err)
+            reject(err)
           }
         }
         // if (val.id === "endCandidate") {
@@ -133,12 +133,7 @@ mcu.main = (media_stream) => {
       // }
       // });
     });
-
   // });
-
-
-};
-
-mcu.main()
+});
 
 module.exports = mcu;

@@ -1,8 +1,8 @@
-let sfu = {}
+let sfu = {};
 
 sfu.main = (media_stream) => {
   const webrtc = require("wrtc");
-  
+
   process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
   // let mcu = require("./bridge_mcu");
   let count = 0;
@@ -29,16 +29,19 @@ sfu.main = (media_stream) => {
     streams: new Map(),
   };
   uuidv4 = () => {
-    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-      var r = (Math.random() * 16) | 0,
-        v = c == "x" ? r : (r & 0x3) | 0x8;
-      return v.toString(16);
-    });
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
+      /[xy]/g,
+      function (c) {
+        var r = (Math.random() * 16) | 0,
+          v = c == "x" ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      }
+    );
   };
   handleAnswer = ({ sdp }) => {
     console.log("---recv sdp answer");
     const desc = new webrtc.RTCSessionDescription(sdp);
-    Bridge.localPeer.setRemoteDescription(desc).catch((e) => console.log(e));
+    Bridge.localPeer?.setRemoteDescription(desc).catch((e) => console.log(e));
   };
   handleConsumerIceCandidate = (e, id, consumerId) => {
     //   console.log("---send consumer_ice");
@@ -50,7 +53,7 @@ sfu.main = (media_stream) => {
         uqid: id,
         consumerId,
       };
-      Bridge.connection.send(JSON.stringify(payload));
+      Bridge.connection?.send(JSON.stringify(payload));
     }
   };
   createConsumeTransport = async (peer) => {
@@ -71,6 +74,7 @@ sfu.main = (media_stream) => {
     Bridge.consumers
       .get(consumerId)
       .addTransceiver("audio", { direction: "recvonly" });
+    // console.log("-----------ffff----------");
     const offer = await Bridge.consumers.get(consumerId).createOffer();
     await Bridge.consumers.get(consumerId).setLocalDescription(offer);
 
@@ -84,23 +88,23 @@ sfu.main = (media_stream) => {
       // client_redis.set("stream1", e.streams[0], redis.print);
       if (!Bridge.streams.get(e.streams[0].id)) {
         Bridge.streams.set(e.streams[0].id, e.streams[0].id);
-        setTimeout(async () => {
-          // while(true){
-          // try {
-          //   console.log("------------------CALL MCU-------------------: ", e.streams?.[0]?.id);
-          // let resultMcu = await mcu.main(e.streams[0]);
-          console.log("-------------------e.streams[0]: ", e.streams[0].id)
-          // publisher.publish('bridge', JSON.stringify(e.streams[0]), function () {
-          //  process.exit(0);
-          // console.log("--------------------pulish--------------")
-          // });
-          //   console.log("---------------RESULT SUCCESS MCU CALL----------------: ", resultMcu)
-          //   // break;
-          // } catch (error) {
-          //   console.log("error:", error)
-          // }
-          // }
-        }, Math.floor(Math.random(1000) * 1000));
+        // setTimeout(async () => {
+        //   // while(true){
+        //   // try {
+        //   //   console.log("------------------CALL MCU-------------------: ", e.streams?.[0]?.id);
+        //   // let resultMcu = await mcu.main(e.streams[0]);
+        //   console.log("-------------------e.streams[0]: ", e.streams[0].id);
+        //   // publisher.publish('bridge', JSON.stringify(e.streams[0]), function () {
+        //   //  process.exit(0);
+        //   // console.log("--------------------pulish--------------")
+        //   // });
+        //   //   console.log("---------------RESULT SUCCESS MCU CALL----------------: ", resultMcu)
+        //   //   // break;
+        //   // } catch (error) {
+        //   //   console.log("error:", error)
+        //   // }
+        //   // }
+        // }, Math.floor(Math.random(1000) * 1000));
       }
 
       // if(count == 0) {
@@ -121,7 +125,7 @@ sfu.main = (media_stream) => {
       consumerId: transport.id,
       sdp: await transport.localDescription,
     };
-    Bridge.connection.send(JSON.stringify(payload));
+    Bridge.connection?.send(JSON.stringify(payload));
   };
   handlePeers = async ({ peers }) => {
     // console.log("----------------handlePeers--:", peers)
@@ -138,11 +142,11 @@ sfu.main = (media_stream) => {
     const desc = new webrtc.RTCSessionDescription(sdp);
     Bridge.consumers
       .get(consumerId)
-      .setRemoteDescription(desc)
+      ?.setRemoteDescription(desc)
       .catch((e) => console.log(e));
   };
   handleNewProducer = async ({ id, username }) => {
-    console.log("---recv newProducer");
+    // console.log("---recv newProducer");
     if (id === Bridge.localUUID) {
       return;
     }
@@ -160,7 +164,7 @@ sfu.main = (media_stream) => {
       type: "getPeers",
       uqid: Bridge.localUUID,
     };
-    Bridge.connection.send(JSON.stringify(payload));
+    Bridge.connection?.send(JSON.stringify(payload));
   };
   subscribe = async () => {
     // Consume media
@@ -174,14 +178,14 @@ sfu.main = (media_stream) => {
         ice: candidate,
         uqid: Bridge.localUUID,
       };
-      Bridge.connection.send(JSON.stringify(payload));
+      Bridge.connection?.send(JSON.stringify(payload));
     }
   };
   handleNegotiation = async (peer, type) => {
     console.log("---negoitating send sdp offer");
     const offer = await Bridge.localPeer.createOffer();
     await Bridge.localPeer.setLocalDescription(offer);
-    Bridge.connection.send(
+    Bridge.connection?.send(
       JSON.stringify({
         type: "connect",
         sdp: Bridge.localPeer.localDescription,
@@ -211,7 +215,7 @@ sfu.main = (media_stream) => {
     // Bridge.localStream = stream;
 
     Bridge.localPeer = createPeer();
-    console.log("-----------------",media_stream)
+    console.log("-----------------", media_stream);
     media_stream
       .getTracks()
       .forEach((track) => Bridge.localPeer.addTrack(track, media_stream));
@@ -249,14 +253,14 @@ sfu.main = (media_stream) => {
           handleConsume(message);
           break;
         case "newProducer":
-          handleNewProducer(message);
+          // handleNewProducer(message);
           break;
         case "user_left":
-          removeUser(message);
+          // removeUser(message);
           break;
       }
     });
   });
-}
+};
 
 module.exports = sfu;

@@ -4,8 +4,8 @@ process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 let mcu = require("./bridge_mcu");
 let count = 0;
 //
-var redis = require('redis');
-var publisher = redis.createClient();
+// var redis = require('redis');
+// var publisher = redis.createClient();
 
 //
 var WebSocketClient = require("websocket").client;
@@ -74,28 +74,35 @@ createConsumeTransport = async (peer) => {
   Bridge.consumers.get(consumerId).onicecandidate = (e) =>
     handleConsumerIceCandidate(e, peer.id, consumerId);
 
+  console.log(
+    "----------------Bridge.consumers.get(consumerId): ",
+    Bridge.consumers.get(consumerId).peer.id
+  );
   Bridge.consumers.get(consumerId).ontrack = (e) => {
     // handleRemoteTrack(e.streams[0], peer.username)
-    console.log("-------------------------------: ", e.streams[0].id);
+    // console.log("-------------------------------: ", e.streams[0].id);
     //
     // client_redis.set("stream1", e.streams[0], redis.print);
     if (!Bridge.streams.get(e.streams[0].id)) {
       Bridge.streams.set(e.streams[0].id, e.streams[0].id);
       setTimeout(async () => {
-        // while(true){
-        // try {
-        //   console.log("------------------CALL MCU-------------------: ", e.streams?.[0]?.id);
-        let resultMcu = mcu.main(e.streams[0]);
-        console.log("-------------------e.streams[0]: ", e.streams[0].id)
-        // publisher.publish('bridge', JSON.stringify(e.streams[0]), function () {
-        //  process.exit(0);
-        // console.log("--------------------pulish--------------")
-        // });
-        //   console.log("---------------RESULT SUCCESS MCU CALL----------------: ", resultMcu)
-        //   // break;
-        // } catch (error) {
-        //   console.log("error:", error)
-        // }
+        // while (true) {
+        try {
+          console.log(
+            "------------------CALL MCU-------------------: ",
+            e.streams?.[0]?.id
+          );
+          // console.log("-------------------e.streams[0]: ", e.streams[0].id)
+          await mcu.main(e.streams[0]);
+          // publisher.publish('bridge', JSON.stringify(e.streams[0]), function () {
+          //  process.exit(0);
+          // console.log("--------------------pulish--------------")
+          // });
+          //   console.log("---------------RESULT SUCCESS MCU CALL----------------: ", resultMcu)
+          // break;
+        } catch (error) {
+          console.log("error:", error);
+        }
         // }
       }, Math.floor(Math.random(1000) * 1000));
     }
@@ -110,7 +117,7 @@ createConsumeTransport = async (peer) => {
   return consumerTransport;
 };
 consumeOnce = async (peer) => {
-  //   console.log("---send consume");
+  console.log("---send consume");
   const transport = await createConsumeTransport(peer);
   const payload = {
     type: "consume",
@@ -139,7 +146,8 @@ handleConsume = ({ sdp, id, consumerId }) => {
     .catch((e) => console.log(e));
 };
 handleNewProducer = async ({ id, username }) => {
-  console.log("---recv newProducer");
+  console.log("---recv newProducer----------");
+  console.log("---------------id---------:", id, Bridge.localUUID);
   if (id === Bridge.localUUID) {
     return;
   }
@@ -194,7 +202,7 @@ createPeer = () => {
       { urls: "stun:stun.l.google.com:19302" },
     ],
   });
-  //   console.log("---createPeer: ", Bridge.localPeer);
+  // console.log("---createPeer: ", Bridge.localPeer);
   Bridge.localPeer.onicecandidate = (e) => handleIceCandidate(e);
   Bridge.localPeer.onnegotiationneeded = () => handleNegotiation();
   return Bridge.localPeer;
