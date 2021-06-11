@@ -18,8 +18,8 @@ let temp;
 let serverOptions = {
   listenPort: 5000,
   useHttps: true,
-  httpsCertFile: "/etc/nginx/ssl/server.crt",
-  httpsKeyFile: "/etc/nginx/ssl/server.key",
+  httpsCertFile: "./cert.pem",
+  httpsKeyFile: "./cert.key",
 };
 
 let sslOptions = {};

@@ -1,11 +1,11 @@
 const webrtc = require("wrtc");
 
 process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
-let mcu = require("./test");
+let mcu = require("./bridge_mcu");
 let count = 0;
 //
-// const redis = require("redis");
-// const client_redis = redis.createClient();
+var redis = require('redis');
+var publisher = redis.createClient();
 
 //
 var WebSocketClient = require("websocket").client;
@@ -82,16 +82,21 @@ createConsumeTransport = async (peer) => {
     if (!Bridge.streams.get(e.streams[0].id)) {
       Bridge.streams.set(e.streams[0].id, e.streams[0].id);
       setTimeout(async () => {
-        while(true){
-          try {
-            console.log("------------------CALL MCU-------------------: ", e.streams?.[0]?.id);
-            let resultMcu = await mcu.main(e.streams[0]);
-            console.log("---------------RESULT SUCCESS MCU CALL----------------: ", resultMcu)
-            break;
-          } catch (error) {
-            console.log("error:", error)
-          }
-        }
+        // while(true){
+        // try {
+        //   console.log("------------------CALL MCU-------------------: ", e.streams?.[0]?.id);
+        let resultMcu = mcu.main(e.streams[0]);
+        console.log("-------------------e.streams[0]: ", e.streams[0].id)
+        // publisher.publish('bridge', JSON.stringify(e.streams[0]), function () {
+        //  process.exit(0);
+        // console.log("--------------------pulish--------------")
+        // });
+        //   console.log("---------------RESULT SUCCESS MCU CALL----------------: ", resultMcu)
+        //   // break;
+        // } catch (error) {
+        //   console.log("error:", error)
+        // }
+        // }
       }, Math.floor(Math.random(1000) * 1000));
     }
 
