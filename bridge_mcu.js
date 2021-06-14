@@ -3,7 +3,9 @@ let mcu = {};
 
 mcu.main = (media_stream) => new Promise((resolve, reject) => {
 // mcu.main = (media_stream) => {
-  // console.log(media_stream)
+  console.log("------------process.argv--------------:", process.argv)
+  console.log("---------media_stream----------------", media_stream)
+  console.log("---------media_stream-1---------------", media_stream.id)
   const webrtc = require("wrtc");
   const express = require("express");
   const app = express();
@@ -78,6 +80,7 @@ mcu.main = (media_stream) => new Promise((resolve, reject) => {
       const webSocketCallback = async (data) => {
         var val = JSON.parse(data.utf8Data);
         // console.log(val)
+        let setSDP_OK = false
         if (val.id === "response" && val.response === "accepted") {
           var test = {
             type: "answer",
@@ -86,6 +89,7 @@ mcu.main = (media_stream) => new Promise((resolve, reject) => {
           const desc = new webrtc.RTCSessionDescription(test);
           // console.log(desc)
           newPeer.setRemoteDescription(desc);
+          setSDP_OK = true
           newPeer.ontrack = (e) => {
             if(count == 1){
               console.log("---traccccccccccccccccc: ", e.streams[0]?.id)
@@ -95,7 +99,7 @@ mcu.main = (media_stream) => new Promise((resolve, reject) => {
           };
         }
         // console.log(val.id)
-        if (val.id === "iceCandidate") {
+        if (val.id === "iceCandidate" && setSDP_OK) {
           try {
             // console.log(val.candidate)
             var test = new webrtc.RTCIceCandidate(val.candidate);
@@ -135,5 +139,8 @@ mcu.main = (media_stream) => new Promise((resolve, reject) => {
     });
   // });
 });
+  // }
+
+// mcu.main(process.argv.slice(2)[0])
 
 module.exports = mcu;

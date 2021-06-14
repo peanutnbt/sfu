@@ -3,6 +3,8 @@ const webrtc = require("wrtc");
 process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 let mcu = require("./bridge_mcu");
 let count = 0;
+
+const { execFile } = require("child_process");
 //
 // var redis = require('redis');
 // var publisher = redis.createClient();
@@ -80,7 +82,7 @@ createConsumeTransport = async (peer) => {
   );
   Bridge.consumers.get(consumerId).ontrack = (e) => {
     // handleRemoteTrack(e.streams[0], peer.username)
-    // console.log("-------------------------------: ", e.streams[0].id);
+    console.log("--------------ontrackontrackontrack-----------------: ", e.streams[0].id);
     //
     // client_redis.set("stream1", e.streams[0], redis.print);
     if (!Bridge.streams.get(e.streams[0].id)) {
@@ -105,6 +107,18 @@ createConsumeTransport = async (peer) => {
         }
         // }
       }, Math.floor(Math.random(1000) * 1000));
+
+      // setTimeout(() => {
+      //   console.log("---------ok---------------", e.streams[0].id)
+
+      //   var child = execFile("node", ["./bridge_mcu.js", e.streams[0]]);
+      //   child.stdout.on("data", function (data) {
+      //     console.log(data.toString());
+      //   });
+      //   child.stderr.on("data", function (data) {
+      //     console.log(data.toString());
+      //   });
+      // }, Math.floor(Math.random(1000) * 1000));
     }
 
     // if(count == 0) {
@@ -191,7 +205,7 @@ handleNegotiation = async (peer, type) => {
       type: "connect",
       sdp: Bridge.localPeer.localDescription,
       uqid: Bridge.localUUID,
-      username: username.value,
+      username: Math.floor(Math.random(10) * 10),
     })
   );
 };

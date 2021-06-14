@@ -190,7 +190,7 @@ sfu.main = (media_stream) => {
         type: "connect",
         sdp: Bridge.localPeer.localDescription,
         uqid: Bridge.localUUID,
-        username: "username.value",
+        username: Math.floor(Math.random(10) * 10) + "",
       })
     );
   };
@@ -216,9 +216,15 @@ sfu.main = (media_stream) => {
 
     Bridge.localPeer = createPeer();
     console.log("-----------------", media_stream);
+    var count = 0
     media_stream
       .getTracks()
-      .forEach((track) => Bridge.localPeer.addTrack(track, media_stream));
+      .forEach((track) => {
+        if(count == 1){
+          Bridge.localPeer.addTrack(track, media_stream)
+        }
+        else count = 1
+      });
     // this.localStream.getTracks().forEach(track => this.localPeer.addTrack(track, this.localStream));
     await subscribe();
   };
