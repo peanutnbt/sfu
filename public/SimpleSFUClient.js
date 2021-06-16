@@ -18,10 +18,31 @@ class SimpleSFUClient {
     const defaultSettings = {
       port: 5000,
       configuration: {
-        iceServers: [
-          { urls: "stun:stun.stunprotocol.org:3478" },
-          { urls: "stun:stun.l.google.com:19302" },
-        ],
+        // iceServers: [
+        //   // {
+        //   //   urls: [ "stun:us-turn8.xirsys.com" ]
+        //   // },
+        //   // {
+        //   //   urls: [ "stun:stun.stunprotocol.org:3478" ]
+        //   // }, 
+        //   {
+        //     urls: ["stun:74.125.24.127:19302"]
+        //   },
+        // ]
+        iceServers: [{
+          urls: ["stun:us-turn1.xirsys.com"]
+        }, {
+          username: "aeBvNoa7ckuGqJ79zRuW5VoDqlOjOlv40EdgmklPH0XdqjYr_i6-EkoTRiqK9-XWAAAAAGDIKlNwZWFudXRuYnQ=",
+          credential: "e1dc3ad4-cd90-11eb-bd2d-0242ac140004",
+          urls: [
+            "turn:us-turn1.xirsys.com:80?transport=udp",
+            // "turn:us-turn1.xirsys.com:3478?transport=udp",
+            "turn:us-turn1.xirsys.com:80?transport=tcp",
+            // "turn:us-turn1.xirsys.com:3478?transport=tcp",
+            // "turns:us-turn1.xirsys.com:443?transport=tcp",
+            // "turns:us-turn1.xirsys.com:5349?transport=tcp"
+          ]
+        }]
       },
     };
 
@@ -34,6 +55,7 @@ class SimpleSFUClient {
     this.localPeer = null;
     this.localUUID = null;
     this.localStream = null;
+    this.listConsumer = new Map();
     Object.keys(_EVENTS).forEach((event) => {
       this.eventListeners.set(event, []);
     });
@@ -110,7 +132,7 @@ class SimpleSFUClient {
   }
 
   async handleIceCandidate({ candidate }) {
-    console.log("---send ice");
+    console.log("---send ice: ", candidate);
     if (candidate && candidate.candidate && candidate.candidate.length > 0) {
       const payload = {
         type: "ice",
@@ -122,7 +144,7 @@ class SimpleSFUClient {
   }
 
   handleConsumerIceCandidate(e, id, consumerId) {
-    console.log("---send consumer_ice");
+    console.log("---send consumer_ice", e.candidate);
     const { candidate } = e;
     if (candidate && candidate.candidate && candidate.candidate.length > 0) {
       const payload = {
@@ -150,10 +172,10 @@ class SimpleSFUClient {
       this.settings.configuration
     );
     this.clients.get(peer.id).consumerId = consumerId;
-    console.log("------1111111: ",consumerTransport)
+    // console.log("------1111111: ",consumerTransport)
     consumerTransport.id = consumerId;
     consumerTransport.peer = peer;
-    console.log("------2222222: ",consumerTransport)
+    // console.log("------2222222: ",consumerTransport)
 
     this.consumers.set(consumerId, consumerTransport);
     this.consumers
@@ -171,7 +193,7 @@ class SimpleSFUClient {
     this.consumers.get(consumerId).ontrack = (e) => {
       this.handleRemoteTrack(e.streams[0], peer.username);
     };
-
+    this.listConsumer.set(consumerTransport.id, consumerTransport)
     return consumerTransport;
   }
 
@@ -188,7 +210,7 @@ class SimpleSFUClient {
   }
 
   async handlePeers({ peers }) {
-      console.log("---recv all peers")
+    console.log("---recv all peers")
     if (peers.length > 0) {
       for (const peer in peers) {
         this.clients.set(peers[peer].id, peers[peer]);
@@ -212,8 +234,33 @@ class SimpleSFUClient {
     await this.consumeOnce({ id, username });
   }
 
+  //
+  addIceServer({ ice }) {
+    let candidate = new RTCIceCandidate(ice)
+    // console.log("------asdsadsadsads: ", candidate);
+
+    this.localPeer
+      .addIceCandidate(candidate)
+  }
+  addConsumeIceServer({ ice }) {
+    let candidate = new RTCIceCandidate(ice)
+    console.log("------asdsadsadsads: ", candidate);
+    console.log("------------peersssssss----------:", this.listConsumer);
+    this.listConsumer.forEach((value, key) => {
+      this.listConsumer.get(key).addIceCandidate(candidate)
+    })
+      
+    // let candidate = new RTCIceCandidate(ice)
+    // console.log("------asdsadsadsads: ", candidate);
+
+    // this.localPeer
+    //   .addIceCandidate(candidate)
+  }
+  
+  //
   handleMessage({ data }) {
     const message = JSON.parse(data);
+    console.log("-----------data: ", message.type);
     switch (message.type) {
       case "welcome":
         this.localUUID = message.id;
@@ -233,8 +280,14 @@ class SimpleSFUClient {
       case "user_left":
         this.removeUser(message);
         break;
+      case "ice":
+        this.addIceServer(message);
+      case "consume_ice":
+        this.addConsumeIceServer(message);
+        break;
     }
   }
+
 
   removeUser({ id }) {
     const { username, consumerId } = this.clients.get(id);
@@ -282,10 +335,13 @@ class SimpleSFUClient {
   createPeer() {
     console.log("---connect");
 
-    this.localPeer = new RTCPeerConnection(this.configuration);
+    this.localPeer = new RTCPeerConnection(this.settings.configuration);
+
     this.localPeer.onicecandidate = (e) => this.handleIceCandidate(e);
     //peer.oniceconnectionstatechange = checkPeerConnection;
+
     this.localPeer.onnegotiationneeded = () => this.handleNegotiation();
+    this.localPeer.oniceconnectionstatechange = (e) => this.handleICEConnectionStateChangeEvent(e);
     return this.localPeer;
   }
 
@@ -305,9 +361,9 @@ class SimpleSFUClient {
   }
 
   async handleNegotiation(peer, type) {
-    console.log("---negoitating send sdp offer");
     const offer = await this.localPeer.createOffer();
     await this.localPeer.setLocalDescription(offer);
+    console.log("---negoitating send sdp offer: ", offer);
 
     this.connection.send(
       JSON.stringify({
@@ -317,6 +373,13 @@ class SimpleSFUClient {
         username: username.value,
       })
     );
+  }
+
+  async handleICEConnectionStateChangeEvent(event) {
+    let stats = await this.localPeer.getStats();
+    console.log("-----------------this.localPeer.connectionState: ", this.localPeer.iceConnectionState)
+    console.log("-----------------this.localPeer.getStats: ", stats)
+    console.log("-----------------event---------: ", event)
   }
 
   handleClose() {

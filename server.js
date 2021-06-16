@@ -18,8 +18,8 @@ let temp;
 let serverOptions = {
   listenPort: 5000,
   useHttps: true,
-  httpsCertFile: "/etc/nginx/ssl/server.crt",
-  httpsKeyFile: "/etc/nginx/ssl/server.key",
+  httpsCertFile: "./cert.pem",
+  httpsKeyFile: "./cert.key",
 };
 
 let sslOptions = {};
@@ -60,10 +60,31 @@ function handleTrackEvent(e, peer, ws) {
 
 function createPeer() {
   let peer = new webrtc.RTCPeerConnection({
-    iceServers: [
-      { urls: "stun:stun.stunprotocol.org:3478" },
-      { urls: "stun:stun.l.google.com:19302" },
-    ],
+    // iceServers: [
+    //   // {
+    //   //   urls: [ "stun:us-turn8.xirsys.com" ]
+    //   // },
+    //   // {
+    //   //   urls: [ "stun:stun.stunprotocol.org:3478" ]
+    //   // }, 
+    //   {
+    //     urls: ["stun:74.125.24.127:19302"]
+    //   }
+    // ]
+    iceServers: [{
+      urls: [ "stun:us-turn1.xirsys.com" ]
+    }, {
+      username: "aeBvNoa7ckuGqJ79zRuW5VoDqlOjOlv40EdgmklPH0XdqjYr_i6-EkoTRiqK9-XWAAAAAGDIKlNwZWFudXRuYnQ=",
+      credential: "e1dc3ad4-cd90-11eb-bd2d-0242ac140004",
+      urls: [
+          "turn:us-turn1.xirsys.com:80?transport=udp",
+          // "turn:us-turn1.xirsys.com:3478?transport=udp",
+          "turn:us-turn1.xirsys.com:80?transport=tcp",
+          // "turn:us-turn1.xirsys.com:3478?transport=tcp",
+          // "turns:us-turn1.xirsys.com:443?transport=tcp",
+          // "turns:us-turn1.xirsys.com:5349?transport=tcp"
+      ]
+    }]
   });
 
   return peer;
@@ -112,6 +133,21 @@ wss.on("connection", function (ws) {
         peers.set(body.uqid, { socket: ws });
         // console.log("---------message connect---------------: ", peers);
         const peer = createPeer();
+        peer.onicecandidate = (e) => {
+          // console.log("----------------candidate---------:", e?.candidate?.candidate) 
+          if (e.candidate && e.candidate.candidate && e.candidate.candidate.length > 0) {
+            const payload = {
+              type: "ice",
+              ice: e.candidate,
+            };
+            ws.send(JSON.stringify(payload));
+          }
+        };
+        peer.oniceconnectionstatechange = async (event) => {
+          // console.log("-----------------this.localPeer.connectionState: ", peer.iceConnectionState)
+          // console.log("-----------------this.localPeer.getStats: ", stats)
+          console.log("-----------------event---------: ", event?.target?.currentLocalDescription)
+        };
 
         peers.get(body.uqid).username = body.username;
         peers.get(body.uqid).peer = peer;
@@ -122,64 +158,12 @@ wss.on("connection", function (ws) {
         await peer.setRemoteDescription(desc);
         const answer = await peer.createAnswer();
         await peer.setLocalDescription(answer);
-
+        console.log("-------sdp-----:", peer.localDescription);
         const payload = {
           type: "answer",
           sdp: peer.localDescription,
         };
         ws.send(JSON.stringify(payload));
-        //
-        // async handleIceCandidate({ candidate }) {
-        //     if (candidate && candidate.candidate && candidate.candidate.length > 0) {
-        //         const payload = {
-        //             type: 'ice',
-        //             ice: candidate,
-        //             uqid: this.localUUID
-        //         }
-        //         this.connection.send(JSON.stringify(payload));
-        //     }
-        // }
-        // const localPeer = createPeer();
-        // var sendChannel = localPeer.createDataChannel("sendChannel");
-        // // sendChannel.onopen = onSendChannelStateChange;
-        // // sendChannel.onclose = onSendChannelStateChange;
-        // sendChannel.onopen = function(event) {
-        //   var readyState = sendChannel.readyState;
-        //   console.log(readyState)
-        //   if (readyState == "open") {
-        //     sendChannel.send("Hello");
-        //   }
-        // };
-
-        // this.localStream.getTracks().forEach(track => localPeer.addTrack(track, this.localStream));
-
-        //   const offer = await localPeer.createOffer();
-        //   console.log("--------offer:", offer);
-        //   await localPeer.setLocalDescription(offer);
-        //   console.log("--------localPeer:", localPeer);
-        //   localPeer.onicecandidate = (candidate) => {
-        //     console.log("1111");
-        //     if (
-        //       candidate &&
-        //       candidate.candidate &&
-        //       candidate.candidate.length > 0
-        //     ) {
-        //       console.log("222");
-        //       connection.send(
-        //         JSON.stringify({
-        //           id: "onIceCandidate",
-        //           candidate: candidate,
-        //         })
-        //       );
-        //     }
-        //   };
-
-        //   connection.send(
-        //     JSON.stringify({
-        //       id: "client",
-        //       sdpOffer: localPeer.localDescription,
-        //     })
-        //   );
 
         break;
       case "getPeers":
@@ -216,9 +200,28 @@ wss.on("connection", function (ws) {
       case "consume":
         try {
           let { id, sdp, consumerId } = body;
+          // console.log("---------------------------------:", sdp);
           const remoteUser = peers.get(id);
           // console.log("---------message consume--remoteUser-------------:", remoteUser.socket.id);
           const newPeer = createPeer();
+
+          //
+          newPeer.onicecandidate = (e) => {
+            // console.log("----------------candidate---------:", e?.candidate?.candidate) 
+            if (e.candidate && e.candidate.candidate && e.candidate.candidate.length > 0) {
+              const payload = {
+                type: "consume_ice",
+                ice: e.candidate,
+              };
+              ws.send(JSON.stringify(payload));
+            }
+          };
+          newPeer.oniceconnectionstatechange = async (event) => {
+            // console.log("-----------------this.localPeer.connectionState: ", peer.iceConnectionState)
+            // console.log("-----------------this.localPeer.getStats: ", stats)
+            console.log("-----------------event---------: ", event?.target?.currentLocalDescription)
+          };
+          //
           consumers.set(consumerId, newPeer);
           const _desc = new webrtc.RTCSessionDescription(sdp);
           await consumers.get(consumerId).setRemoteDescription(_desc);
@@ -226,26 +229,6 @@ wss.on("connection", function (ws) {
           remoteUser.stream.getTracks().forEach((track) => {
             // console.log("----------------------------------------------------------------: ",consumers.get(consumerId))
             consumers.get(consumerId).addTrack(track, remoteUser.stream);
-            // console.log("11111111111ok")
-            // ws.send(JSON.stringify({
-            //   type: "fwstream",
-            //   stream: remoteUser.stream
-            // }));
-            // console.log("-----------remoteUser.stream-------: ", remoteUser.stream)
-            // wss.broadcast(JSON.stringify({
-            //   type: "fwstream",
-            //   stream: remoteUser.stream
-            // }));
-            // wss.clients.forEach(function each(client) {
-            //   if (client !== ws && client.readyState === WebSocket.OPEN) {
-            //     client.send(JSON.stringify({
-            //       type: "fwstream",
-            //       stream: remoteUser.stream
-            //     }));
-            //   }
-            // });
-
-            // console.log("22222222222ok")
           });
           const _answer = await consumers.get(consumerId).createAnswer();
           await consumers.get(consumerId).setLocalDescription(_answer);
@@ -260,27 +243,6 @@ wss.on("connection", function (ws) {
           };
           // console.log("-ice:", temp)
           ws.send(JSON.stringify(_payload));
-          // connection.send(
-          //   JSON.stringify({
-          //     id: "abc",
-          //     sdpOffer: consumers.get(consumerId).localDescription.sdp,
-          //     candidate: temp
-          //   })
-          // );
-          //
-          const source = new RTCVideoSource();
-          const track = source.createTrack();
-          const transceiver = newPeer.addTransceiver(track);
-          const sink = new RTCVideoSink(transceiver.receiver.track);
-          let lastFrame = null;
-
-          function onFrame({ frame }) {
-            console.log("--------------frame: ", frame);
-            lastFrame = frame;
-          }
-          // console.log("--sink: ", sink.addEventListener("frame", onFrame));
-
-          //
         } catch (error) {
           console.log(error);
         }
@@ -294,9 +256,6 @@ wss.on("connection", function (ws) {
             .catch((e) => console.log(e));
         }
         break;
-      // default:
-      //   console.log("22222222222");
-      //   wss.broadcast(message);
     }
   });
 
