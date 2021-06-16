@@ -2,7 +2,6 @@
 
 const webrtc = require("wrtc");
 const { RTCVideoSink, RTCVideoSource } = require("wrtc").nonstandard;
-const cors = require("cors");
 const { v4: uuidv4 } = require("uuid");
 const fs = require("fs");
 const http = require("http");
@@ -10,8 +9,6 @@ const https = require("https");
 const WebSocket = require("ws");
 const express = require("express");
 const app = express();
-let sendChannel;
-let receiveChannel;
 app.use(express.static("public"));
 const WebSocketServer = WebSocket.Server;
 let temp;
@@ -243,6 +240,28 @@ wss.on("connection", function (ws) {
           };
           // console.log("-ice:", temp)
           ws.send(JSON.stringify(_payload));
+          // console.log("---------------------------: ", peers);
+          // connection.send(
+          //   JSON.stringify({
+          //     id: "abc",
+          //     sdpOffer: consumers.get(consumerId).localDescription.sdp,
+          //     candidate: temp
+          //   })
+          // );
+          //
+          // const source = new RTCVideoSource();
+          // const track = source.createTrack();
+          // const transceiver = newPeer.addTransceiver(track);
+          // const sink = new RTCVideoSink(transceiver.receiver.track);
+          // let lastFrame = null;
+
+          // function onFrame({ frame }) {
+          //   console.log("--------------frame: ", frame);
+          //   lastFrame = frame;
+          // }
+          // console.log("--sink: ", sink.addEventListener("frame", onFrame));
+
+          //
         } catch (error) {
           console.log(error);
         }
