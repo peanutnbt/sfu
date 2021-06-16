@@ -18,10 +18,10 @@ class SimpleSFUClient {
     const defaultSettings = {
       port: 5000,
       configuration: {
-        iceServers: [
-          { urls: "stun:stun.stunprotocol.org:3478" },
-          { urls: "stun:stun.l.google.com:19302" },
-        ],
+        // iceServers: [
+        //   { urls: "stun:stun.stunprotocol.org:3478" },
+        //   { urls: "stun:stun.l.google.com:19302" },
+        // ],
       },
     };
 
@@ -150,10 +150,10 @@ class SimpleSFUClient {
       this.settings.configuration
     );
     this.clients.get(peer.id).consumerId = consumerId;
-    console.log("------1111111: ",consumerTransport)
+    // console.log("------1111111: ",consumerTransport)
     consumerTransport.id = consumerId;
     consumerTransport.peer = peer;
-    console.log("------2222222: ",consumerTransport)
+    // console.log("------2222222: ",consumerTransport)
 
     this.consumers.set(consumerId, consumerTransport);
     this.consumers
@@ -286,7 +286,9 @@ class SimpleSFUClient {
 
     this.localPeer.onicecandidate = (e) => this.handleIceCandidate(e);
     //peer.oniceconnectionstatechange = checkPeerConnection;
+
     this.localPeer.onnegotiationneeded = () => this.handleNegotiation();
+    this.localPeer.oniceconnectionstatechange = (e) => this.handleICEConnectionStateChangeEvent(e);
     return this.localPeer;
   }
 
@@ -306,9 +308,9 @@ class SimpleSFUClient {
   }
 
   async handleNegotiation(peer, type) {
-    console.log("---negoitating send sdp offer");
     const offer = await this.localPeer.createOffer();
     await this.localPeer.setLocalDescription(offer);
+    console.log("---negoitating send sdp offer: ", offer);
 
     this.connection.send(
       JSON.stringify({
@@ -318,6 +320,11 @@ class SimpleSFUClient {
         username: username.value,
       })
     );
+  }
+
+  async handleICEConnectionStateChangeEvent(event) {
+    console.log("-----------------this.localPeer: ", this.localPeer)
+    console.log("-----------------event---------: ", event)
   }
 
   handleClose() {

@@ -2,7 +2,6 @@
 
 const webrtc = require("wrtc");
 const { RTCVideoSink, RTCVideoSource } = require("wrtc").nonstandard;
-const cors = require("cors");
 const { v4: uuidv4 } = require("uuid");
 const fs = require("fs");
 const http = require("http");
@@ -10,8 +9,6 @@ const https = require("https");
 const WebSocket = require("ws");
 const express = require("express");
 const app = express();
-let sendChannel;
-let receiveChannel;
 app.use(express.static("public"));
 const WebSocketServer = WebSocket.Server;
 let temp;
@@ -60,10 +57,10 @@ function handleTrackEvent(e, peer, ws) {
 
 function createPeer() {
   let peer = new webrtc.RTCPeerConnection({
-    iceServers: [
-      { urls: "stun:stun.stunprotocol.org:3478" },
-      { urls: "stun:stun.l.google.com:19302" },
-    ],
+    // iceServers: [
+    //   { urls: "stun:stun.stunprotocol.org:3478" },
+    //   { urls: "stun:stun.l.google.com:19302" },
+    // ],
   });
 
   return peer;
@@ -122,6 +119,7 @@ wss.on("connection", function (ws) {
         await peer.setRemoteDescription(desc);
         const answer = await peer.createAnswer();
         await peer.setLocalDescription(answer);
+        console.log("-------: ", body.sdp)
 
         const payload = {
           type: "answer",
@@ -216,6 +214,7 @@ wss.on("connection", function (ws) {
       case "consume":
         try {
           let { id, sdp, consumerId } = body;
+          console.log("----sdp consume---: ", sdp)
           const remoteUser = peers.get(id);
           // console.log("---------message consume--remoteUser-------------:", remoteUser.socket.id);
           const newPeer = createPeer();
@@ -260,7 +259,7 @@ wss.on("connection", function (ws) {
           };
           // console.log("-ice:", temp)
           ws.send(JSON.stringify(_payload));
-          console.log("---------------------------: ", peers);
+          // console.log("---------------------------: ", peers);
           // connection.send(
           //   JSON.stringify({
           //     id: "abc",
