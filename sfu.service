@@ -1,0 +1,16 @@
+[Unit]
+Description=SFU
+
+[Service]
+ExecStart=/home/ubuntu/.nvm/versions/node/v16.3.0/bin/node server.js
+Restart=always
+RestartSec=10
+User=ubuntu
+Group=ubuntu
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=SFU
+WorkingDirectory=/home/ubuntu/video_conference/sfu
+
+[Install]
+WantedBy=multi-user.target
