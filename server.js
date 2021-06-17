@@ -143,7 +143,7 @@ wss.on("connection", function (ws) {
         peer.oniceconnectionstatechange = async (event) => {
           // console.log("-----------------this.localPeer.connectionState: ", peer.iceConnectionState)
           // console.log("-----------------this.localPeer.getStats: ", stats)
-          console.log("-----------------event---------: ", event?.target?.currentLocalDescription)
+          // console.log("-----------------event---------: ", event?.target?.currentLocalDescription)
         };
 
         peers.get(body.uqid).username = body.username;
@@ -155,7 +155,7 @@ wss.on("connection", function (ws) {
         await peer.setRemoteDescription(desc);
         const answer = await peer.createAnswer();
         await peer.setLocalDescription(answer);
-        console.log("-------sdp-----:", peer.localDescription);
+        // console.log("-------sdp-----:", peer.localDescription);
         const payload = {
           type: "answer",
           sdp: peer.localDescription,
@@ -216,7 +216,7 @@ wss.on("connection", function (ws) {
           newPeer.oniceconnectionstatechange = async (event) => {
             // console.log("-----------------this.localPeer.connectionState: ", peer.iceConnectionState)
             // console.log("-----------------this.localPeer.getStats: ", stats)
-            console.log("-----------------event---------: ", event?.target?.currentLocalDescription)
+            // console.log("-----------------event---------: ", event?.target?.currentLocalDescription)
           };
           //
           consumers.set(consumerId, newPeer);
