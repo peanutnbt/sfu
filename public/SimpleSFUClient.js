@@ -66,8 +66,8 @@ class SimpleSFUClient {
 
   initWebSocket() {
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-   // const url = `${protocol}://${window.location.hostname}:${this.settings.port}`;
-    const url = `${protocol}://${window.location.hostname}` + `/sfu/`;
+    const url = `${protocol}://${window.location.hostname}:${this.settings.port}`;
+    // const url = `${protocol}://${window.location.hostname}` + `/sfu/`;
     this.connection = new WebSocket(url);
     this.connection.onmessage = (data) => this.handleMessage(data);
     this.connection.onclose = () => this.handleClose();
@@ -133,7 +133,8 @@ class SimpleSFUClient {
   }
 
   async handleIceCandidate({ candidate }) {
-    console.log("---send ice: ", candidate);
+    // console.log("---send ice: ", candidate);
+    console.log("---send ice: ");
     if (candidate && candidate.candidate && candidate.candidate.length > 0) {
       const payload = {
         type: "ice",
@@ -145,7 +146,8 @@ class SimpleSFUClient {
   }
 
   handleConsumerIceCandidate(e, id, consumerId) {
-    console.log("---send consumer_ice", e.candidate);
+    //console.log("---send consumer_ice", e.candidate);
+    console.log("---send consumer_ice");
     const { candidate } = e;
     if (candidate && candidate.candidate && candidate.candidate.length > 0) {
       const payload = {
@@ -159,7 +161,7 @@ class SimpleSFUClient {
   }
 
   handleConsume({ sdp, id, consumerId }) {
-    console.log("---recv consume");
+    console.log("---recv consume:", consumerId);
     const desc = new RTCSessionDescription(sdp);
     this.consumers
       .get(consumerId)
@@ -221,7 +223,8 @@ class SimpleSFUClient {
   }
 
   handleAnswer({ sdp }) {
-    console.log("---recv sdp answer: ", sdp, typeof sdp);
+    //console.log("---recv sdp answer: ", sdp, typeof sdp);
+    console.log("---recv sdp answer: ");
     const desc = new RTCSessionDescription(sdp);
     this.localPeer.setRemoteDescription(desc).catch((e) => console.log(e));
   }
@@ -245,23 +248,16 @@ class SimpleSFUClient {
   }
   addConsumeIceServer({ ice }) {
     let candidate = new RTCIceCandidate(ice)
-    console.log("------asdsadsadsads: ", candidate);
-    console.log("------------peersssssss----------:", this.listConsumer);
+    console.log("------listConumer----:", this.listConsumer)
     this.listConsumer.forEach((value, key) => {
       this.listConsumer.get(key).addIceCandidate(candidate)
     })
-      
-    // let candidate = new RTCIceCandidate(ice)
-    // console.log("------asdsadsadsads: ", candidate);
-
-    // this.localPeer
-    //   .addIceCandidate(candidate)
   }
   
-  //
+  // 
   handleMessage({ data }) {
     const message = JSON.parse(data);
-    console.log("-----------data: ", message.type);
+    //console.log("-----------data: ", message.type);
     switch (message.type) {
       case "welcome":
         this.localUUID = message.id;
@@ -291,9 +287,15 @@ class SimpleSFUClient {
 
 
   removeUser({ id }) {
+    console.log("---------remove-id--:", id)
     const { username, consumerId } = this.clients.get(id);
     this.consumers.delete(consumerId);
     this.clients.delete(id);
+    // this.listConsumer.get(key).addIceCandidate(candidate)
+    console.log("----1: ", this.listConsumer)
+    this.listConsumer.delete(consumerId);
+    console.log("----2: ", this.listConsumer)
+
     document
       .querySelector(`#remote_${username}`)
       .srcObject.getTracks()
@@ -364,7 +366,8 @@ class SimpleSFUClient {
   async handleNegotiation(peer, type) {
     const offer = await this.localPeer.createOffer();
     await this.localPeer.setLocalDescription(offer);
-    console.log("---negoitating send sdp offer: ", offer);
+    // console.log("---negoitating send sdp offer: ", offer);
+    console.log("---negoitating send sdp offer: ");
 
     this.connection.send(
       JSON.stringify({
@@ -378,9 +381,9 @@ class SimpleSFUClient {
 
   async handleICEConnectionStateChangeEvent(event) {
     let stats = await this.localPeer.getStats();
-    console.log("-----------------this.localPeer.connectionState: ", this.localPeer.iceConnectionState)
-    console.log("-----------------this.localPeer.getStats: ", stats)
-    console.log("-----------------event---------: ", event)
+    // console.log("-----------------this.localPeer.connectionState: ", this.localPeer.iceConnectionState)
+    // console.log("-----------------this.localPeer.getStats: ", stats)
+    // console.log("-----------------event---------: ", event)
   }
 
   handleClose() {

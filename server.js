@@ -203,21 +203,21 @@ wss.on("connection", function (ws) {
           const newPeer = createPeer();
 
           //
-          newPeer.onicecandidate = (e) => {
-            // console.log("----------------candidate---------:", e?.candidate?.candidate) 
-            if (e.candidate && e.candidate.candidate && e.candidate.candidate.length > 0) {
-              const payload = {
-                type: "consume_ice",
-                ice: e.candidate,
-              };
-              ws.send(JSON.stringify(payload));
-            }
-          };
-          newPeer.oniceconnectionstatechange = async (event) => {
-            // console.log("-----------------this.localPeer.connectionState: ", peer.iceConnectionState)
-            // console.log("-----------------this.localPeer.getStats: ", stats)
-            // console.log("-----------------event---------: ", event?.target?.currentLocalDescription)
-          };
+          // newPeer.onicecandidate = (e) => {
+          //   // console.log("----------------candidate---------:", e?.candidate?.candidate) 
+          //   if (e.candidate && e.candidate.candidate && e.candidate.candidate.length > 0) {
+          //     const payload = {
+          //       type: "consume_ice",
+          //       ice: e.candidate,
+          //     };
+          //     ws.send(JSON.stringify(payload));
+          //   }
+          // };
+          // newPeer.oniceconnectionstatechange = async (event) => {
+          //   // console.log("-----------------this.localPeer.connectionState: ", peer.iceConnectionState)
+          //   // console.log("-----------------this.localPeer.getStats: ", stats)
+          //   // console.log("-----------------event---------: ", event?.target?.currentLocalDescription)
+          // };
           //
           consumers.set(consumerId, newPeer);
           const _desc = new webrtc.RTCSessionDescription(sdp);
@@ -240,27 +240,17 @@ wss.on("connection", function (ws) {
           };
           // console.log("-ice:", temp)
           ws.send(JSON.stringify(_payload));
-          // console.log("---------------------------: ", peers);
-          // connection.send(
-          //   JSON.stringify({
-          //     id: "abc",
-          //     sdpOffer: consumers.get(consumerId).localDescription.sdp,
-          //     candidate: temp
-          //   })
-          // );
-          //
-          // const source = new RTCVideoSource();
-          // const track = source.createTrack();
-          // const transceiver = newPeer.addTransceiver(track);
-          // const sink = new RTCVideoSink(transceiver.receiver.track);
-          // let lastFrame = null;
-
-          // function onFrame({ frame }) {
-          //   console.log("--------------frame: ", frame);
-          //   lastFrame = frame;
-          // }
-          // console.log("--sink: ", sink.addEventListener("frame", onFrame));
-
+          newPeer.onicecandidate = (e) => {
+              if (e.candidate && e.candidate.candidate && e.candidate.candidate.length > 0) {
+                const payload = {
+                  type: "consume_ice",
+                  ice: e.candidate,
+                };
+                ws.send(JSON.stringify(payload));
+              }
+            };
+            newPeer.oniceconnectionstatechange = async (event) => {
+            }; 
           //
         } catch (error) {
           console.log(error);

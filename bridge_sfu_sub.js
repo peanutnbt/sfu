@@ -11,13 +11,13 @@ sfu.main = (media_stream) => {
   // var publisher = redis.createClient();
 
   //
-  var WebSocketClient = require("websocket").client;
-  var client = new WebSocketClient();
+  var WebSocketClient_SUB = require("websocket").client;
+  var client_sub = new WebSocketClient_SUB();
 
-  client.on("connectFailed", function (error) {
+  client_sub.on("connectFailed", function (error) {
     console.log("Connect Error: " + error.toString());
   });
-  client.connect("wss://localhost:5000", "echo-protocol");
+  client_sub.connect("wss://localhost:5000", "echo-protocol");
 
   let Bridge = {
     localUUID: null,
@@ -39,7 +39,7 @@ sfu.main = (media_stream) => {
     );
   };
   handleAnswer = ({ sdp }) => {
-    console.log("---recv sdp answer");
+    console.log("------------------SFU SUB GOT ANSWER-------------------");
     const desc = new webrtc.RTCSessionDescription(sdp);
     Bridge.localPeer?.setRemoteDescription(desc).catch((e) => console.log(e));
   };
@@ -82,36 +82,9 @@ sfu.main = (media_stream) => {
       handleConsumerIceCandidate(e, peer.id, consumerId);
 
     Bridge.consumers.get(consumerId).ontrack = (e) => {
-      // handleRemoteTrack(e.streams[0], peer.username)
-      console.log("-------------------------------: ", e.streams[0].id);
-      //
-      // client_redis.set("stream1", e.streams[0], redis.print);
       if (!Bridge.streams.get(e.streams[0].id)) {
         Bridge.streams.set(e.streams[0].id, e.streams[0].id);
-        // setTimeout(async () => {
-        //   // while(true){
-        //   // try {
-        //   //   console.log("------------------CALL MCU-------------------: ", e.streams?.[0]?.id);
-        //   // let resultMcu = await mcu.main(e.streams[0]);
-        //   console.log("-------------------e.streams[0]: ", e.streams[0].id);
-        //   // publisher.publish('bridge', JSON.stringify(e.streams[0]), function () {
-        //   //  process.exit(0);
-        //   // console.log("--------------------pulish--------------")
-        //   // });
-        //   //   console.log("---------------RESULT SUCCESS MCU CALL----------------: ", resultMcu)
-        //   //   // break;
-        //   // } catch (error) {
-        //   //   console.log("error:", error)
-        //   // }
-        //   // }
-        // }, Math.floor(Math.random(1000) * 1000));
       }
-
-      // if(count == 0) {
-      //     console.log("--------------push-----------------: ", e.streams[0].id);
-      //     mcu.main(e.streams[0])
-      //     count =1
-      // }
     };
 
     return consumerTransport;
@@ -138,7 +111,7 @@ sfu.main = (media_stream) => {
   };
 
   handleConsume = ({ sdp, id, consumerId }) => {
-    console.log("---recv consume");
+    // console.log("---recv consume");
     const desc = new webrtc.RTCSessionDescription(sdp);
     Bridge.consumers
       .get(consumerId)
@@ -146,7 +119,7 @@ sfu.main = (media_stream) => {
       .catch((e) => console.log(e));
   };
   handleNewProducer = async ({ id, username }) => {
-    // console.log("---recv newProducer");
+    console.log("--------------------fFFFFFFFFFFFFFFFFFfffff-------");
     if (id === Bridge.localUUID) {
       return;
     }
@@ -159,7 +132,7 @@ sfu.main = (media_stream) => {
     Bridge.clients.delete(id);
   };
   consumeAll = () => {
-    console.log("---send getPeers");
+    // console.log("---send getPeers");
     const payload = {
       type: "getPeers",
       uqid: Bridge.localUUID,
@@ -171,7 +144,7 @@ sfu.main = (media_stream) => {
     await consumeAll();
   };
   handleIceCandidate = ({ candidate }) => {
-    console.log("---send ice");
+    // console.log("---send ice");
     if (candidate && candidate.candidate && candidate.candidate.length > 0) {
       const payload = {
         type: "ice",
@@ -182,7 +155,7 @@ sfu.main = (media_stream) => {
     }
   };
   handleNegotiation = async (peer, type) => {
-    console.log("---negoitating send sdp offer");
+    // console.log("---negoitating send sdp offer");
     const offer = await Bridge.localPeer.createOffer();
     await Bridge.localPeer.setLocalDescription(offer);
     Bridge.connection?.send(
@@ -208,14 +181,14 @@ sfu.main = (media_stream) => {
     return Bridge.localPeer;
   };
   connect = async () => {
-    console.log("---connect");
+    // console.log("---connect");
     //Produce media
     // const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     // this.handleRemoteTrack(stream, username.value)
     // Bridge.localStream = stream;
 
     Bridge.localPeer = createPeer();
-    console.log("-----------------", media_stream);
+    console.log("----------------------SFU SUB CREATE TRACK------------")
     var count = 0
     media_stream
       .getTracks()
@@ -228,8 +201,8 @@ sfu.main = (media_stream) => {
     // this.localStream.getTracks().forEach(track => this.localPeer.addTrack(track, this.localStream));
     await subscribe();
   };
-  client.on("connect", function (connection) {
-    console.log("WebSocket Client Connected");
+  client_sub.on("connect", function (connection) {
+    // console.log("WebSocket client_sub Connected");
     connection.on("error", function (error) {
       console.log("Connection Error: " + error.toString());
     });
@@ -238,15 +211,10 @@ sfu.main = (media_stream) => {
     });
     connection.on("message", function (data) {
       const message = JSON.parse(data.utf8Data);
-      // console.log("-----------------message-------:", message);
       switch (message.type) {
         case "welcome":
           Bridge.localUUID = message.id;
-          console.log("-----------------welcome-------:");
-
           Bridge.connection = connection;
-          // console.log("-----------------welcome-11111111111111-----:", Bridge.connection.socket);
-
           connect();
           break;
         case "answer":
@@ -259,7 +227,7 @@ sfu.main = (media_stream) => {
           handleConsume(message);
           break;
         case "newProducer":
-          // handleNewProducer(message);
+          handleNewProducer(message);
           break;
         case "user_left":
           // removeUser(message);

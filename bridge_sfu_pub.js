@@ -6,9 +6,10 @@ let count = 0;
 
 const { execFile } = require("child_process");
 //
-// var redis = require('redis');
-// var publisher = redis.createClient();
+var redis = require('redis');
+var publisher = redis.createClient();
 
+publisher.set('call_mcu', 'false')
 //
 var WebSocketClient = require("websocket").client;
 var client = new WebSocketClient();
@@ -35,7 +36,7 @@ uuidv4 = () => {
   });
 };
 handleAnswer = ({ sdp }) => {
-  console.log("---recv sdp answer");
+  // console.log("---recv sdp answer");
   const desc = new webrtc.RTCSessionDescription(sdp);
   Bridge.localPeer.setRemoteDescription(desc).catch((e) => console.log(e));
 };
@@ -76,13 +77,13 @@ createConsumeTransport = async (peer) => {
   Bridge.consumers.get(consumerId).onicecandidate = (e) =>
     handleConsumerIceCandidate(e, peer.id, consumerId);
 
-  console.log(
-    "----------------Bridge.consumers.get(consumerId): ",
-    Bridge.consumers.get(consumerId).peer.id
-  );
+  // console.log(
+  //   "----------------Bridge.consumers.get(consumerId): ",
+  //   Bridge.consumers.get(consumerId).peer.id
+  // );
   Bridge.consumers.get(consumerId).ontrack = (e) => {
     // handleRemoteTrack(e.streams[0], peer.username)
-    console.log("--------------ontrackontrackontrack-----------------: ", e.streams[0].id);
+    // console.log("--------------ontrackontrackontrack-----------------: ", e.streams[0].id);
     //
     // client_redis.set("stream1", e.streams[0], redis.print);
     if (!Bridge.streams.get(e.streams[0].id)) {
@@ -90,12 +91,9 @@ createConsumeTransport = async (peer) => {
       setTimeout(async () => {
         // while (true) {
         try {
-          console.log(
-            "------------------CALL MCU-------------------: ",
-            e.streams?.[0]?.id
-          );
+          console.log("------------------CALL MCU-------------------");
           // console.log("-------------------e.streams[0]: ", e.streams[0].id)
-          await mcu.main(e.streams[0]);
+          await mcu.main(e.streams[0], Bridge.localPeer);
           // publisher.publish('bridge', JSON.stringify(e.streams[0]), function () {
           //  process.exit(0);
           // console.log("--------------------pulish--------------")
@@ -131,7 +129,7 @@ createConsumeTransport = async (peer) => {
   return consumerTransport;
 };
 consumeOnce = async (peer) => {
-  console.log("---send consume");
+  // console.log("---send consume");
   const transport = await createConsumeTransport(peer);
   const payload = {
     type: "consume",
@@ -142,7 +140,7 @@ consumeOnce = async (peer) => {
   Bridge.connection.send(JSON.stringify(payload));
 };
 handlePeers = async ({ peers }) => {
-  // console.log("----------------handlePeers--:", peers)
+  console.log("----------------NHAN CAC SFU VAO TU TRUOC---------")
   if (peers.length > 0) {
     for (const peer in peers) {
       Bridge.clients.set(peers[peer].id, peers[peer]);
@@ -152,7 +150,7 @@ handlePeers = async ({ peers }) => {
 };
 
 handleConsume = ({ sdp, id, consumerId }) => {
-  console.log("---recv consume");
+  // console.log("---recv consume");
   const desc = new webrtc.RTCSessionDescription(sdp);
   Bridge.consumers
     .get(consumerId)
@@ -160,8 +158,8 @@ handleConsume = ({ sdp, id, consumerId }) => {
     .catch((e) => console.log(e));
 };
 handleNewProducer = async ({ id, username }) => {
-  console.log("---recv newProducer----------");
-  console.log("---------------id---------:", id, Bridge.localUUID);
+  console.log("-------------------NEW SFU COMMING----------");
+  // console.log("---------------id---------:", id, Bridge.localUUID);
   if (id === Bridge.localUUID) {
     return;
   }
@@ -174,7 +172,7 @@ removeUser = ({ id }) => {
   Bridge.clients.delete(id);
 };
 consumeAll = () => {
-  console.log("---send getPeers");
+  // console.log("---send getPeers");ebSocket Client Connected
   const payload = {
     type: "getPeers",
     uqid: Bridge.localUUID,
@@ -186,7 +184,7 @@ subscribe = async () => {
   await consumeAll();
 };
 handleIceCandidate = ({ candidate }) => {
-  console.log("---send ice");
+  // console.log("---send ice");
   if (candidate && candidate.candidate && candidate.candidate.length > 0) {
     const payload = {
       type: "ice",
@@ -197,7 +195,7 @@ handleIceCandidate = ({ candidate }) => {
   }
 };
 handleNegotiation = async (peer, type) => {
-  console.log("---negoitating send sdp offer");
+  // console.log("---negoitating send sdp offer");
   const offer = await Bridge.localPeer.createOffer();
   await Bridge.localPeer.setLocalDescription(offer);
   Bridge.connection.send(
@@ -229,11 +227,11 @@ connect = async () => {
   // Bridge.localStream = stream;
 
   Bridge.localPeer = createPeer();
-  // this.localStream.getTracks().forEach(track => this.localPeer.addTrack(track, this.localStream));
+  // stream.getTracks().forEach(track => Bridge.localPeer.addTrack(track, stream));
   await subscribe();
 };
 client.on("connect", function (connection) {
-  console.log("WebSocket Client Connected");
+  // console.log("WebSocket Client Connected");
   connection.on("error", function (error) {
     console.log("Connection Error: " + error.toString());
   });
