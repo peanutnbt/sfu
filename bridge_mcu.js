@@ -1,7 +1,8 @@
 let mcu = {};
 
 
-mcu.main = (media_stream, sfuLocalPeer) => new Promise((resolve, reject) => {
+mcu.main = (media_stream, sfuLocalPeer, emitter, localUUID) => new Promise((resolve, reject) => {
+  // console.log('local', localUUID)
   // mcu.main = (media_stream) => {
   // console.log("------------process.argv--------------:", )
   // console.log("---------media_stream----------------", media_stream)
@@ -11,7 +12,8 @@ mcu.main = (media_stream, sfuLocalPeer) => new Promise((resolve, reject) => {
   const app = express();
   var redis = require('redis');
   var publisher = redis.createClient();
-  
+  // var sessionId;
+
   let redis_promise_get = (key) => new Promise((resolve, reject) => {
     publisher.get(key, function (err, reply) {
       // reply is null when the key is missing
@@ -95,12 +97,24 @@ mcu.main = (media_stream, sfuLocalPeer) => new Promise((resolve, reject) => {
       );
     };
 
+    emitter.on(`${localUUID}`, () => {
+      // console.log("sfu_outtttttttt", localUUID)
+      connection.send(
+        JSON.stringify({
+          id: "stop_sfu",
+          sessionId: sessionId
+        })
+      )
+    })
+
     //    newPeer.onicecandidate = (e) => console.log(e.candidate);
     const webSocketCallback = async (data) => {
       var val = JSON.parse(data.utf8Data);
       // console.log(val)
       let setSDP_OK = false
       if (val.id === "response" && val.response === "accepted") {
+        sessionId = val.sessionId
+        console.log("sessionId", sessionId)
         var test = {
           type: "answer",
           sdp: val.sdpAnswer,
@@ -117,7 +131,7 @@ mcu.main = (media_stream, sfuLocalPeer) => new Promise((resolve, reject) => {
             count = 0;
             let call_mcu = await redis_promise_get("call_mcu")
             console.log("----------------REDISSSSS----:", call_mcu)
-            if(call_mcu == "false"){
+            if (call_mcu == "false") {
               console.log("------in-------------asdsadsadsadsa---------123213")
               e.streams[0].getTracks().forEach(track => sfuLocalPeer.addTrack(track, e.streams[0]));
               await redis_promise_set("call_mcu", "true")

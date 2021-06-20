@@ -3,9 +3,10 @@ const webrtc = require("wrtc");
 process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 let mcu = require("./bridge_mcu");
 let count = 0;
-
+var Emitter = require("events");
+var emitter = new Emitter();
 const { execFile } = require("child_process");
-//
+var sessionId = '';
 var redis = require('redis');
 var publisher = redis.createClient();
 
@@ -55,6 +56,7 @@ handleConsumerIceCandidate = (e, id, consumerId) => {
 };
 createConsumeTransport = async (peer) => {
   const consumerId = uuidv4();
+  console.log('consumerID', consumerId)
   const consumerTransport = new webrtc.RTCPeerConnection({
     iceServers: [
       { urls: "stun:stun.stunprotocol.org:3478" },
@@ -93,7 +95,7 @@ createConsumeTransport = async (peer) => {
         try {
           console.log("------------------CALL MCU-------------------");
           // console.log("-------------------e.streams[0]: ", e.streams[0].id)
-          await mcu.main(e.streams[0], Bridge.localPeer);
+          await mcu.main(e.streams[0], Bridge.localPeer, emitter, temp);
           // publisher.publish('bridge', JSON.stringify(e.streams[0]), function () {
           //  process.exit(0);
           // console.log("--------------------pulish--------------")
@@ -258,9 +260,12 @@ client.on("connect", function (connection) {
         break;
       case "newProducer":
         handleNewProducer(message);
+        temp = message.id;
         break;
       case "user_left":
         removeUser(message);
+        console.log("ssssssssss", message)
+        emitter.emit(`${temp}`)
         break;
     }
   });
