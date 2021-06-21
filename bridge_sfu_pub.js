@@ -9,7 +9,7 @@ const { execFile } = require("child_process");
 var sessionId = '';
 var redis = require('redis');
 var publisher = redis.createClient();
-
+var temp;
 publisher.set('call_mcu', 'false')
 //
 var WebSocketClient = require("websocket").client;
